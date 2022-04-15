@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include "alarm.h"
+#include <Adafruit_Fingerprint.h>
 
 //make a class that can be used to store a profile
 class Profile{
@@ -31,7 +32,7 @@ class Profile{
 
         //setters
         char setName(char name[]);
-        int setFingerprint(int fingerprint);
+        int setFingerprint();
         void setNewAlarm (Alarm tempAlarm);
         
 
@@ -39,6 +40,14 @@ class Profile{
         char name[10];
         uint8_t fingerprint; 
         Alarm alarms[10];
+
+      //Fingerprint sensor stuff
+        void setup(void); //might not need setup since dispenser.ino already has it
+        uint8_t readnumber(void);
+        uint8_t  enroll(); 
+
+        uint8_t id;
+
 
 };
 

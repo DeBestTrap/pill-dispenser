@@ -12,7 +12,7 @@ void Alarm::changeAlarmChute(uint8_t chute){
     chute_no = chute;
 }
 
-uint8_t Alarm::getAlarmDays(uint8_t day){
+bool Alarm::getAlarmDays(uint8_t day){
     return day_of_alarm[day];
 }
 

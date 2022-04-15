@@ -9,7 +9,7 @@ public:
     Alarm(){
       time = 0;
       for (uint8_t i = 0; i < 7; i++){
-        day_of_alarm[i] = 0;
+        day_of_alarm[i] = false;
       }
       chute_no = 0;
     }
@@ -33,7 +33,7 @@ public:
     void changeAlarmChute(uint8_t chute); //input number 1-6 for chutes
     
     //getters
-    uint8_t getAlarmDays(uint8_t day);
+    bool getAlarmDays(uint8_t day);
     uint32_t getAlarmTime();
     uint8_t getChuteNo();
 

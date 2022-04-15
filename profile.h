@@ -34,7 +34,7 @@ class Profile{
         char setName(char name[]);
         int setFingerprint();
         void setNewAlarm (Alarm tempAlarm);
-        
+        void FingerPrintScan(); 
 
     private:
         char name[10];

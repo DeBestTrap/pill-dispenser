@@ -14,12 +14,12 @@ SoftwareSerial mySerial(2, 4);
   #define mySerial Serial1
 #endif
 
+#define GREENCOLOR 50712
 char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
 uint32_t currentTime = 0;
 uint8_t pill_array[6];
 String chute_name_array[6];
 uint8_t fingerid = 0;
-
 
 // Define Pins
 // #define MOTORPIN 3
@@ -28,6 +28,7 @@ uint8_t fingerid = 0;
 // ** IMPORTANT **
 //   The variable names are going to include the page number to decrease confusion. The names of
 //   the buttons/components in the UI editor do not have to include the page number in their name.
+
 NexText name_t2_profile(3, 3, "t2");
 NexText notification_t1_profile(3, 6, "t1");
 NexButton idscan_b0_profile(3, 5, "b2");
@@ -44,9 +45,18 @@ NexButton toAddAlarm_b0_chuteprofile(5, 3, "b0");
 
 NexNumber hour_n0_alarm(6, 4, "n0");
 NexNumber min_n1_alarm(6, 5, "n1");
+NexNumber dfa_n2_alarm(6, 20, "n2");
+NexButton sunday_b0_alarm(6, 6, "b0");
+NexButton monday_b8_alarm(6, 14, "b8");
+NexButton tuesday_b1_alarm(6, 7, "b1");
+NexButton wednesday_b5_alarm(6, 11, "b5");
+NexButton thursday_b4_alarm(6, 10, "b4");
+NexButton friday_b6_alarm(6, 12, "b6");
+NexButton saturday_b7_alarm(6, 13, "b7");
 NexButton newTime_b3_alarm(6, 9, "b3");
 NexButton finished_b2_alarm(6, 8, "b2");
-String weekday_variable_names[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
+NexButton weekdays[7] = { sunday_b0_alarm, monday_b8_alarm, tuesday_b1_alarm, wednesday_b5_alarm, thursday_b4_alarm, friday_b6_alarm, saturday_b7_alarm };
+String weekday_button_names[7] = { "b0", "b8", "b1", "b5", "b4", "b6", "b7" };
 
 NexText allAlarms_t0_overview(7, 3, "t0");
 
@@ -122,7 +132,6 @@ void addAlarm() {
 
   Alarm tempAlarm = Alarm();
   getText("profile.t2", text_buf, 30); // Name of the profile
-  //test kevin
 
   // Calcuate the number of seconds from the hours and minutes and
   // store it in the alarm class
@@ -137,57 +146,53 @@ void addAlarm() {
   for (uint8_t ctr = 0; ctr < 7; ctr++) {
     // for all weekdays selected by user, store in alarm class
     String obj_name = "alarm.";
-    obj_name += weekday_variable_names[ctr];
-    getVal(obj_name, int_buf);
-    if (int_buf[0] == 1) {
+    obj_name = weekday_button_names[ctr];
+    getBCo(obj_name, int_buf);
+    if (int_buf[0] == GREENCOLOR) {
       // If the weekday is selected, store in alarm class as true
       tempAlarm.setAlarmDay(ctr, true);
-    } else {
-      // If the weekday is not selected, store in alarm class as false
-      tempAlarm.setAlarmDay(ctr, false);
+      setText("overview.t0", "Test", 4);
     }
   }
-  tempProfile.setNewAlarm(tempAlarm);
+
+  // ALL TESTING BELOW
+  // for (uint8_t i = 0; i < 7; i++) {
+  //   if(tempAlarm.getAlarmDays(i)) {
+  //     // text += 'Y';
+  //     setText("overview.t0", "Sus", 3);
+  //   }
+  // }
+  // setText("overview.t0", "ewe", 3);
+  // text.toCharArray(text_buf, 30);
+  // setText("overview.t0", text_buf, 30);
+  // // ?? add alarm to profile class
+  // tempProfile.setNewAlarm(tempAlarm);
+  // String text; 
+  // seconds = tempAlarm.getAlarmTime();
+  // uint32_t hours = floor(seconds / 3600);
+  // seconds -= hours * 3600;
+  // uint32_t min = floor(seconds / 3600);
+  
+  // utoa(hours, text_buf, 30);
+  // text += text_buf;
+  // text += ":";
+  // utoa(min, text_buf, 30);
+  // text += text_buf;
+  // // char buf[100];
+  // // text_buf = tempProfile.
+
+  // text.toCharArray(text_buf, 30);
 }
 
 void newTime_b3_alarm_PushCb(void *ptr) {
-  addAlarm();
+  // addAlarm();
+  setText("overview.t0", "bruhnext", 30);
 }
 
 void finished_b2_alarm_PushCb(void *ptr) {
   addAlarm();
   // Edit allalarms text on the overview page with all alarms
-  char text_buf[30];
-  String text; 
-  for (uint8_t i = 0; i < 10; i++) {
-    Alarm tempAlarm = tempProfile.getAlarm(i);
-    if (tempAlarm.getChuteNo() == 0) {
-      // If the alarm is not set, break the loop 
-      break;
-    }
-
-    // Parse seconds and add "<hr>:<min>" to the text
-    uint32_t seconds = tempAlarm.getAlarmTime();
-    uint32_t hours = floor(seconds / 3600);
-    seconds -= hours * 3600;
-    uint32_t min = floor(seconds / 60);
-    utoa(hours, text_buf, 10);
-    text += text_buf;
-    text += ":";
-    utoa(min, text_buf, 10);
-    text += text_buf;
-
-    // Parse the weekdays the alarm is set for and add to the text
-    for (uint8_t j = 0; j < 7; j++) {
-      if (tempAlarm.getAlarmDays(j)) {
-        text += " ";
-        text += weekday_abbrv[j];
-      }
-    }
-    text += '\r';
-  }
-  text.toCharArray(text_buf, 30);
-  setText("overview.t0", text_buf, 30);
+  // Moredays
 }
 
 
@@ -233,11 +238,20 @@ void loop(void) {
    */
 
   nexLoop(nex_listen_list);
-
+  uint8_t hour[1];
+  uint8_t minute[1];
+  if (millis()-prev_millis >= 1000){
+    sendCommand("get rtc3");
+    recvRetNumber(hour);
+    sendCommand("get rtc4");
+    recvRetNumber(minute);
+  }
   // TESTING
   // currTime = motorControl(motorPin, currTime);
   // t0p1.setText(ltoa(millis() - currTime, buf, 10));
 }
+
+
 
 // My own functions for getText, setText, getVal, setVal, getBCo
 bool getVal(String obj_name, uint32_t *buffer) {

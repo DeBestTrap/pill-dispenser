@@ -50,7 +50,7 @@ NexNumber hour_n0_alarm(6, 4, "n0");
 NexNumber min_n1_alarm(6, 5, "n1");
 NexButton newTime_b3_alarm(6, 9, "b3");
 NexButton finished_b2_alarm(6, 8, "b2");
-String weekday_abbrv[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
+String weekday_variable_names[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
 
 NexButton status_b1_idle(9, 13, "b1");
 
@@ -249,8 +249,8 @@ void loop(void) {
    */
 
   nexLoop(nex_listen_list);
-  uint8_t hour[1];
-  uint8_t minute[1];
+  uint32_t hour[1];
+  uint32_t minute[1];
   if (millis()-prev_millis >= 1000){
     sendCommand("get rtc3");
     recvRetNumber(hour);

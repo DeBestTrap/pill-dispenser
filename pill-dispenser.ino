@@ -18,7 +18,7 @@ char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
 uint32_t currentTime = 0;
 uint8_t pill_array[6];
 String chute_name_array[6];
-uint8_t fingerid = 1;
+uint8_t fingerid = 0;
 
 
 // Define Pins
@@ -63,25 +63,27 @@ NexTouch *nex_listen_list[] = {
 void idScan_b0_profile_PushCb(void *ptr) {
   // Once user presses the button, goes to a new page
   // interacts with the fingerprint sensor here
-  uint8_t id;
+  
+  fingerid ++;
+  String text;
+  text = "Press finger on sensor";
 
-  char text_buff[100];
+  char text_buff[sizeof(text)];
   
   setText("profile.t1", text_buff ,sizeof(text_buff));
+  text.toCharArray(text_buff, sizeof(text_buff));
+
+
+
 
   Serial.println("Ready to enroll a fingerprint!");
   Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  id = readnumber();
+  
 
-  //t1 id = 6 
-
-  if (id == 0) {// ID #0 not allowed, try again!
-     return;
-  }
   Serial.print("Enrolling ID #");
-  Serial.println(id);
+  Serial.println(fingerid);
 
-  while (!  getFingerprintEnroll(id) );
+  while (!  getFingerprintEnroll(fingerid) );
    
   
 
@@ -313,15 +315,6 @@ uint8_t getFingerprintEnroll(uint8_t id) {
     case FINGERPRINT_OK:
       Serial.println("Image taken");
       break;
-    case FINGERPRINT_NOFINGER:
-      Serial.println(".");
-      break;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      break;
-    case FINGERPRINT_IMAGEFAIL:
-      Serial.println("Imaging error");
-      break;
     default:
       Serial.println("Unknown error");
       break;
@@ -335,18 +328,6 @@ uint8_t getFingerprintEnroll(uint8_t id) {
     case FINGERPRINT_OK:
       Serial.println("Image converted");
       break;
-    case FINGERPRINT_IMAGEMESS:
-      Serial.println("Image too messy");
-      return p;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      return p;
-    case FINGERPRINT_FEATUREFAIL:
-      Serial.println("Could not find fingerprint features");
-      return p;
-    case FINGERPRINT_INVALIDIMAGE:
-      Serial.println("Could not find fingerprint features");
-      return p;
     default:
       Serial.println("Unknown error");
       return p;
@@ -367,15 +348,6 @@ uint8_t getFingerprintEnroll(uint8_t id) {
     case FINGERPRINT_OK:
       Serial.println("Image taken");
       break;
-    case FINGERPRINT_NOFINGER:
-      Serial.print(".");
-      break;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      break;
-    case FINGERPRINT_IMAGEFAIL:
-      Serial.println("Imaging error");
-      break;
     default:
       Serial.println("Unknown error");
       break;
@@ -389,20 +361,8 @@ uint8_t getFingerprintEnroll(uint8_t id) {
     case FINGERPRINT_OK:
       Serial.println("Image converted");
       break;
-    case FINGERPRINT_IMAGEMESS:
-      Serial.println("Image too messy");
-      return p;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      return p;
-    case FINGERPRINT_FEATUREFAIL:
-      Serial.println("Could not find fingerprint features");
-      return p;
-    case FINGERPRINT_INVALIDIMAGE:
-      Serial.println("Could not find fingerprint features");
-      return p;
     default:
-      Serial.println("Unknown error");
+      Serial.println("error");
       return p;
   }
 
@@ -412,14 +372,8 @@ uint8_t getFingerprintEnroll(uint8_t id) {
   p = finger.createModel();
   if (p == FINGERPRINT_OK) {
     Serial.println("Prints matched!");
-  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
-    Serial.println("Communication error");
-    return p;
-  } else if (p == FINGERPRINT_ENROLLMISMATCH) {
-    Serial.println("Fingerprints did not match");
-    return p;
   } else {
-    Serial.println("Unknown error");
+    Serial.println(" error");
     return p;
   }
 
@@ -427,17 +381,8 @@ uint8_t getFingerprintEnroll(uint8_t id) {
   p = finger.storeModel(id);
   if (p == FINGERPRINT_OK) {
     Serial.println("Stored!");
-  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
-    Serial.println("Communication error");
-    return p;
-  } else if (p == FINGERPRINT_BADLOCATION) {
-    Serial.println("Could not store in that location");
-    return p;
-  } else if (p == FINGERPRINT_FLASHERR) {
-    Serial.println("Error writing to flash");
-    return p;
   } else {
-    Serial.println("Unknown error");
+    Serial.println("error");
     return p;
   }
 

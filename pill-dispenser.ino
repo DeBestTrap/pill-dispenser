@@ -18,7 +18,8 @@ char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
 uint32_t currentTime = 0;
 uint8_t pill_array[6];
 String chute_name_array[6];
-uint8_t fingerid = 0;
+uint8_t fingerid = 1;
+
 
 // Define Pins
 // #define MOTORPIN 3
@@ -28,8 +29,12 @@ uint8_t fingerid = 0;
 //   The variable names are going to include the page number to decrease confusion. The names of
 //   the buttons/components in the UI editor do not have to include the page number in their name.
 NexText name_t2_profile(3, 3, "t2");
+NexText notification_t1_profile(3, 6, "t1");
 NexButton idscan_b0_profile(3, 5, "b2");
 NexButton schedule_b0_profile(3, 1, "b0");
+
+
+
 
 NexVariable chuteid_chuteselc(4, 8, "chuteid");
 
@@ -58,8 +63,26 @@ NexTouch *nex_listen_list[] = {
 void idScan_b0_profile_PushCb(void *ptr) {
   // Once user presses the button, goes to a new page
   // interacts with the fingerprint sensor here
+  uint8_t id;
+
+  char text_buff[100];
+  
+  setText("profile.t1", text_buff ,sizeof(text_buff));
+
+  Serial.println("Ready to enroll a fingerprint!");
+  Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
+  id = readnumber();
+
+  //t1 id = 6 
+
+  if (id == 0) {// ID #0 not allowed, try again!
+     return;
+  }
+  Serial.print("Enrolling ID #");
+  Serial.println(id);
+
+  while (!  getFingerprintEnroll(id) );
    
-  Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
   
 
   fingerid = 1;
@@ -166,6 +189,7 @@ void finished_b2_alarm_PushCb(void *ptr) {
 }
 
 
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 void setup(void) {    
   // Set the baudrate which is for debug and communicate with Nextion screen
   Serial.begin(9600);
@@ -183,6 +207,16 @@ void setup(void) {
 
   // Set output pins
   // pinMode(motorPin, OUTPUT);
+
+
+  //set fingerprint sensor datarate
+  finger.begin(57600);
+  if (finger.verifyPassword()) {
+    Serial.println("Found fingerprint sensor!");
+  } else {
+    Serial.println("Did not find fingerprint sensor :(");
+    while (1) {delay(1);};
+  }
 
   // Init all the chutes to have 0 pills
   for (int i = 0; i < 6; i++) {
@@ -256,3 +290,157 @@ uint32_t getBCo(String obj_name, uint32_t *buffer) {
   sendCommand(cmd.c_str());
   return recvRetNumber(buffer);
 }
+
+uint8_t readnumber(void) {
+  //helper function in creating a fingerprint 
+  //returns the location that the fingerprint is stored in (0 to 127)
+  uint8_t num = 0;
+
+  while (num == 0) {
+    while (! Serial.available());
+    num = Serial.parseInt();
+  }
+  return num;
+}
+
+uint8_t getFingerprintEnroll(uint8_t id) {
+
+  int p = -1;
+  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+
+  Serial.println("Remove finger");
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+  }
+  Serial.print("ID "); Serial.println(id);
+  p = -1;
+  Serial.println("Place same finger again");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.print(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+
+  // OK converted!
+  Serial.print("Creating model for #");  Serial.println(id);
+
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Prints matched!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_ENROLLMISMATCH) {
+    Serial.println("Fingerprints did not match");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }
+
+  Serial.print("ID "); Serial.println(id);
+  p = finger.storeModel(id);
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Stored!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_BADLOCATION) {
+    Serial.println("Could not store in that location");
+    return p;
+  } else if (p == FINGERPRINT_FLASHERR) {
+    Serial.println("Error writing to flash");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }
+
+  return true;
+}
+ 

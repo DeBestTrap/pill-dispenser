@@ -94,7 +94,8 @@ void addAlarm() {
 
   Alarm tempAlarm = Alarm();
   getText("profile.t2", text_buf, 30); // Name of the profile
-
+  //text
+  
   // Calcuate the number of seconds from the hours and minutes and
   // store it in the alarm class
   getVal("alarm.n0", int_buf); // Hours

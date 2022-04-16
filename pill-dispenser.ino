@@ -14,21 +14,18 @@ SoftwareSerial mySerial(2, 4);
   #define mySerial Serial1
 #endif
 
-#define GREENCOLOR 50712
 char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
 uint8_t fingerid = 0;
-
-
-uint32_t prev_millis = 0;
-uint8_t current_hour = 0;
-uint8_t current_minute = 0;
-uint8_t current_day = 0; //0-6, 0: sunday, 6: saturday
 
 // Arrays to store chute information
 String chute_name_array[6];
 uint8_t pill_array[6];
 
 // Keeping Track of Time
+uint32_t prev_millis = 0;
+uint8_t current_hour = 0;
+uint8_t current_minute = 0;
+uint8_t current_day = 0; //0-6, 0: sunday, 6: saturday
 
 // Define Pins
 // #define MOTORPIN 3
@@ -43,9 +40,6 @@ NexText notification_t1_profile(3, 6, "t1");
 NexButton idscan_b0_profile(3, 5, "b2");
 NexButton schedule_b0_profile(3, 1, "b0");
 
-
-
-
 NexVariable chuteid_chuteselc(4, 8, "chuteid");
 
 NexText name_t1_chuteprofile(5, 2, "t1");
@@ -54,18 +48,9 @@ NexButton toAddAlarm_b0_chuteprofile(5, 3, "b0");
 
 NexNumber hour_n0_alarm(6, 4, "n0");
 NexNumber min_n1_alarm(6, 5, "n1");
-NexNumber dfa_n2_alarm(6, 20, "n2");
-NexButton sunday_b0_alarm(6, 6, "b0");
-NexButton monday_b8_alarm(6, 14, "b8");
-NexButton tuesday_b1_alarm(6, 7, "b1");
-NexButton wednesday_b5_alarm(6, 11, "b5");
-NexButton thursday_b4_alarm(6, 10, "b4");
-NexButton friday_b6_alarm(6, 12, "b6");
-NexButton saturday_b7_alarm(6, 13, "b7");
 NexButton newTime_b3_alarm(6, 9, "b3");
 NexButton finished_b2_alarm(6, 8, "b2");
-NexButton weekdays[7] = { sunday_b0_alarm, monday_b8_alarm, tuesday_b1_alarm, wednesday_b5_alarm, thursday_b4_alarm, friday_b6_alarm, saturday_b7_alarm };
-String weekday_button_names[7] = { "b0", "b8", "b1", "b5", "b4", "b6", "b7" };
+String weekday_abbrv[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
 
 NexButton status_b1_idle(9, 13, "b1");
 
@@ -155,25 +140,24 @@ void addAlarm() {
   for (uint8_t ctr = 0; ctr < 7; ctr++) {
     // for all weekdays selected by user, store in alarm class
     String obj_name = "alarm.";
-    obj_name = weekday_button_names[ctr];
-    getBCo(obj_name, int_buf);
-    if (int_buf[0] == GREENCOLOR) {
+    obj_name = weekday_abbrv[ctr];
+    getVal(obj_name, int_buf);
+    if (int_buf[0] == 0) {
       // If the weekday is selected, store in alarm class as true
       tempAlarm.setAlarmDay(ctr, true);
-      setText("overview.t0", "Test", 4);
     }
   }
+  tempProfile.setNewAlarm(tempAlarm);
 }
 
 void newTime_b3_alarm_PushCb(void *ptr) {
-  // addAlarm();
-  setText("overview.t0", "bruhnext", 30);
+  addAlarm();
 }
 
 void finished_b2_alarm_PushCb(void *ptr) {
   addAlarm();
-  // Edit allalarms text on the overview page with all alarms
 
+  // Edit allalarms text on the overview page with all alarms
   char text_buf[100];
   String text = create_upcoming_alarms_text();
   text.toCharArray(text_buf, 100);

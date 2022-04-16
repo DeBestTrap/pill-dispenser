@@ -161,34 +161,6 @@ void addAlarm() {
       setText("overview.t0", "Test", 4);
     }
   }
-
-  // ALL TESTING BELOW
-  // for (uint8_t i = 0; i < 7; i++) {
-  //   if(tempAlarm.getAlarmDays(i)) {
-  //     // text += 'Y';
-  //     setText("overview.t0", "Sus", 3);
-  //   }
-  // }
-  // setText("overview.t0", "ewe", 3);
-  // text.toCharArray(text_buf, 30);
-  // setText("overview.t0", text_buf, 30);
-  // // ?? add alarm to profile class
-  // tempProfile.setNewAlarm(tempAlarm);
-  // String text; 
-  // seconds = tempAlarm.getAlarmTime();
-  // uint32_t hours = floor(seconds / 3600);
-  // seconds -= hours * 3600;
-  // uint32_t min = floor(seconds / 3600);
-  
-  // utoa(hours, text_buf, 30);
-  // text += text_buf;
-  // text += ":";
-  // utoa(min, text_buf, 30);
-  // text += text_buf;
-  // // char buf[100];
-  // // text_buf = tempProfile.
-
-  // text.toCharArray(text_buf, 30);
 }
 
 void newTime_b3_alarm_PushCb(void *ptr) {
@@ -269,11 +241,6 @@ void loop(void) {
   }
   current_hour = hour[0];
   current_minute = minute[0];
-
-
-  // TESTING
-  // currTime = motorControl(motorPin, currTime);
-  // t0p1.setText(ltoa(millis() - currTime, buf, 10));
 }
 
 

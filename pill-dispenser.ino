@@ -4,6 +4,15 @@
 #include "Nextion.h"
 #include "profile.h"
 #include "alarm.h"
+#include "Adafruit_Fingerprint.h"
+
+//defintions 
+#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
+// pin #2 in sensor in, pin #4 out from arduino
+SoftwareSerial mySerial(2, 4);
+#else 
+  #define mySerial Serial1
+#endif
 
 char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
 uint32_t currentTime = 0;
@@ -49,15 +58,19 @@ NexTouch *nex_listen_list[] = {
 void idScan_b0_profile_PushCb(void *ptr) {
   // Once user presses the button, goes to a new page
   // interacts with the fingerprint sensor here
+   
+  Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+  
+
   fingerid = 1;
 }
-
+ 
 Profile tempProfile = Profile();
 void schedule_b0_profile_PushCb(void *ptr) {
   // Creates a profile that stores the name and the finger print id
   // into the profile class
-  char text_buf[30];
-  getText("profile.t2", text_buf, 30);
+  char text_buf[20];
+  getText("profile.t2", text_buf, 20);
   tempProfile = Profile(text_buf, fingerid);
 }
 

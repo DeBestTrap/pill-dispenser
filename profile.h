@@ -32,7 +32,7 @@ class Profile{
 
         //setters
         char setName(char name[]);
-        int setFingerprint();
+        int setFingerprint(uint8_t fingerprint);
         void setNewAlarm (Alarm tempAlarm);
         void FingerPrintScan();        
 

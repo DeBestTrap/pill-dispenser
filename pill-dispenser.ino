@@ -190,7 +190,7 @@ void loop(void) {
    * When a pop or push event occurs every time,
    * the corresponding component[right page id and component id] in touch event list will be asked.
    */
-
+//lsjdflkds
   nexLoop(nex_listen_list);
   uint8_t hour[1];
   uint8_t minute[1];

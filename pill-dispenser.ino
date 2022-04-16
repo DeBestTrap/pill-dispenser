@@ -21,6 +21,13 @@ uint8_t pill_array[6];
 String chute_name_array[6];
 uint8_t fingerid = 0;
 
+
+uint32_t prev_millis = 0;
+uint8_t current_hour = 0;
+uint8_t current_minute = 0;
+uint8_t current_day = 0; //0-6, 0: sunday, 6: saturday
+
+
 // Define Pins
 // #define MOTORPIN 3
 

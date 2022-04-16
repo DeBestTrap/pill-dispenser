@@ -13,6 +13,9 @@ String chute_name_array[6];
 uint8_t fingerid = 0;
 
 uint32_t prev_millis = 0;
+uint8_t current_hour = 0;
+uint8_t current_minute = 0;
+uint8_t current_day = 0; //0-6, 0: sunday, 6: saturday
 
 // Define Pins
 // #define MOTORPIN 3
@@ -194,12 +197,30 @@ void loop(void) {
   nexLoop(nex_listen_list);
   uint8_t hour[1];
   uint8_t minute[1];
+  char day[10];
   if (millis()-prev_millis >= 1000){
     sendCommand("get rtc3");
     recvRetNumber(hour);
     sendCommand("get rtc4");
     recvRetNumber(minute);
   }
+  
+  if (hour[0] == 0 && current_hour == 23){
+    if(current_day <6){
+      current_day++;
+    }else{
+      current_day=0;
+    }
+  }
+
+  if(minute == 1){
+    digitalWrite(3, HIGH);
+  }else{
+    digitalWrite(3, LOW);
+  }
+  current_hour = hour[0];
+  current_minute = minute[0];
+
   // TESTING
   // currTime = motorControl(motorPin, currTime);
   // t0p1.setText(ltoa(millis() - currTime, buf, 10));

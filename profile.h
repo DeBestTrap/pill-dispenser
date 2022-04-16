@@ -28,7 +28,7 @@ class Profile{
         //getters
         char* getName() {return name;}
         int getFingerprint() {return fingerprint;}
-        Alarm getAlarm() {return alarms[0];}
+        Alarm getAlarm(uint8_t i) {return alarms[i];}
 
         //setters
         char setName(char name[]);

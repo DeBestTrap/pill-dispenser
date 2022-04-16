@@ -6,10 +6,13 @@
 #include "alarm.h"
 
 char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
-uint32_t currentTime = 0;
-uint8_t pill_array[6];
-String chute_name_array[6];
 uint8_t fingerid = 0;
+
+// Arrays to store chute information
+String chute_name_array[6];
+uint8_t pill_array[6];
+
+// Keeping Track of Time
 
 // Define Pins
 // #define MOTORPIN 3
@@ -34,7 +37,7 @@ NexButton newTime_b3_alarm(6, 9, "b3");
 NexButton finished_b2_alarm(6, 8, "b2");
 String weekday_variable_names[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
 
-NexText allAlarms_t0_overview(7, 3, "t0");
+NexButton status_b1_idle(9, 13, "b1");
 
 // Register a button object to the touch event list.  
 NexTouch *nex_listen_list[] = {
@@ -43,6 +46,7 @@ NexTouch *nex_listen_list[] = {
   &toAddAlarm_b0_chuteprofile,
   &newTime_b3_alarm,
   &finished_b2_alarm,
+  &status_b1_idle,
   NULL
 };
 
@@ -74,7 +78,6 @@ void toAddAlarm_b0_chuteprofile_PushCb(void *ptr) {
   pill_array[chute_num-1] = int_buf[0];
   setVal("chuteprofile.n0", 0); // Reset the num of pills on display back to 0
 }
-
 
 void addAlarm() {
   // General add alarm function since newTime and finished buttons 
@@ -118,6 +121,22 @@ void newTime_b3_alarm_PushCb(void *ptr) {
 void finished_b2_alarm_PushCb(void *ptr) {
   addAlarm();
   // Edit allalarms text on the overview page with all alarms
+  char text_buf[100];
+  String text = create_upcoming_alarms_text();
+  text.toCharArray(text_buf, 100);
+  setText("overview.t0", text_buf, 100);
+}
+
+void status_b1_idle_PushCb(void *ptr) {
+  // If the user presses the status button, go to the status page
+  // and display the upcoming alarms
+  char text_buf[100];
+  String text = create_upcoming_alarms_text();
+  text.toCharArray(text_buf, 100);
+  setText("idle.t0", text_buf, 100);
+}
+
+String create_upcoming_alarms_text() {
   char text_buf[30];
   String text; 
   for (uint8_t i = 0; i < 10; i++) {
@@ -146,10 +165,8 @@ void finished_b2_alarm_PushCb(void *ptr) {
     }
     text += '\r';
   }
-  text.toCharArray(text_buf, 30);
-  setText("overview.t0", text_buf, 30);
+  return text;
 }
-
 
 void setup(void) {    
   // Set the baudrate which is for debug and communicate with Nextion screen
@@ -165,6 +182,7 @@ void setup(void) {
   toAddAlarm_b0_chuteprofile.attachPush(toAddAlarm_b0_chuteprofile_PushCb, &toAddAlarm_b0_chuteprofile);
   newTime_b3_alarm.attachPush(newTime_b3_alarm_PushCb, &newTime_b3_alarm);
   finished_b2_alarm.attachPush(finished_b2_alarm_PushCb, &finished_b2_alarm);
+  status_b1_idle.attachPush(status_b1_idle_PushCb, &status_b1_idle);
 
   // Set output pins
   // pinMode(motorPin, OUTPUT);

@@ -38,7 +38,7 @@ public:
     uint8_t getChuteNo();
 
 private:
-    uint32_t time; //expressed in seconds
+    uint32_t time; //expressed in minutes
     bool day_of_alarm[7];//index 0 = monday, index 6 = sunday. val of true means set, val of false means not set
     uint8_t chute_no; //numbers 1-6
 };

@@ -88,10 +88,10 @@ void addAlarm() {
   // Calcuate the number of seconds from the hours and minutes and
   // store it in the alarm class
   getVal("alarm.n0", int_buf); // Hours
-  uint32_t seconds = int_buf[0] * 3600;
+  uint32_t mins = int_buf[0] * 60;
   getVal("alarm.n1", int_buf); // Minutes
-  seconds += int_buf[0] * 60;
-  tempAlarm.changeAlarmTime(seconds);
+  mins += int_buf[0];
+  tempAlarm.changeAlarmTime(mins);
   tempAlarm.changeAlarmChute(chute_num);
 
   // Store the weekdays to the alarm class
@@ -128,14 +128,13 @@ void finished_b2_alarm_PushCb(void *ptr) {
     }
 
     // Parse seconds and add "<hr>:<min>" to the text
-    uint32_t seconds = tempAlarm.getAlarmTime();
-    uint32_t hours = floor(seconds / 3600);
-    seconds -= hours * 3600;
-    uint32_t min = floor(seconds / 60);
+    uint32_t mins = tempAlarm.getAlarmTime();
+    uint32_t hours = floor(mins / 60);
+    mins -= hours * 60;
     utoa(hours, text_buf, 10);
     text += text_buf;
     text += ":";
-    utoa(min, text_buf, 10);
+    utoa(mins, text_buf, 10);
     text += text_buf;
 
     // Parse the weekdays the alarm is set for and add to the text

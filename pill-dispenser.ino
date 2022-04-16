@@ -245,7 +245,25 @@ void loop(void) {
     recvRetNumber(hour);
     sendCommand("get rtc4");
     recvRetNumber(minute);
+  } 
+  
+  if (hour[0] == 0 && current_hour == 23){
+    if(current_day <6){
+      current_day++;
+    }else{
+      current_day=0;
+    }
   }
+
+  if(minute[0] == 1){
+    digitalWrite(3, HIGH);
+  }else{
+    digitalWrite(3, LOW);
+  }
+  current_hour = hour[0];
+  current_minute = minute[0];
+
+
   // TESTING
   // currTime = motorControl(motorPin, currTime);
   // t0p1.setText(ltoa(millis() - currTime, buf, 10));

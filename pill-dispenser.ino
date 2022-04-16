@@ -213,7 +213,7 @@ void loop(void) {
     }
   }
 
-  if(minute == 1){
+  if(minute[0] == 1){
     digitalWrite(3, HIGH);
   }else{
     digitalWrite(3, LOW);

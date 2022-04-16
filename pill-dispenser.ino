@@ -4,6 +4,15 @@
 #include "Nextion.h"
 #include "profile.h"
 #include "alarm.h"
+#include "Adafruit_Fingerprint.h"
+
+//defintions 
+#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
+// pin #2 in sensor in, pin #4 out from arduino
+SoftwareSerial mySerial(2, 4);
+#else 
+  #define mySerial Serial1
+#endif
 
 #define GREENCOLOR 50712
 char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
@@ -11,8 +20,6 @@ uint32_t currentTime = 0;
 uint8_t pill_array[6];
 String chute_name_array[6];
 uint8_t fingerid = 0;
-
-uint32_t prev_millis = 0;
 
 // Define Pins
 // #define MOTORPIN 3
@@ -23,8 +30,12 @@ uint32_t prev_millis = 0;
 //   the buttons/components in the UI editor do not have to include the page number in their name.
 
 NexText name_t2_profile(3, 3, "t2");
+NexText notification_t1_profile(3, 6, "t1");
 NexButton idscan_b0_profile(3, 5, "b2");
 NexButton schedule_b0_profile(3, 1, "b0");
+
+
+
 
 NexVariable chuteid_chuteselc(4, 8, "chuteid");
 
@@ -62,15 +73,39 @@ NexTouch *nex_listen_list[] = {
 void idScan_b0_profile_PushCb(void *ptr) {
   // Once user presses the button, goes to a new page
   // interacts with the fingerprint sensor here
+  
+  fingerid ++;
+  String text;
+  text = "Press finger on sensor";
+
+  char text_buff[sizeof(text)];
+  
+  setText("profile.t1", text_buff ,sizeof(text_buff));
+  text.toCharArray(text_buff, sizeof(text_buff));
+
+
+
+
+  Serial.println("Ready to enroll a fingerprint!");
+  Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
+  
+
+  Serial.print("Enrolling ID #");
+  Serial.println(fingerid);
+
+  while (!  getFingerprintEnroll(fingerid) );
+   
+  
+
   fingerid = 1;
 }
-
+ 
 Profile tempProfile = Profile();
 void schedule_b0_profile_PushCb(void *ptr) {
   // Creates a profile that stores the name and the finger print id
   // into the profile class
-  char text_buf[30];
-  getText("profile.t2", text_buf, 30);
+  char text_buf[20];
+  getText("profile.t2", text_buf, 20);
   tempProfile = Profile(text_buf, fingerid);
 }
 
@@ -161,6 +196,7 @@ void finished_b2_alarm_PushCb(void *ptr) {
 }
 
 
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 void setup(void) {    
   // Set the baudrate which is for debug and communicate with Nextion screen
   Serial.begin(9600);
@@ -178,6 +214,16 @@ void setup(void) {
 
   // Set output pins
   // pinMode(motorPin, OUTPUT);
+
+
+  //set fingerprint sensor datarate
+  finger.begin(57600);
+  if (finger.verifyPassword()) {
+    Serial.println("Found fingerprint sensor!");
+  } else {
+    Serial.println("Did not find fingerprint sensor :(");
+    while (1) {delay(1);};
+  }
 
   // Init all the chutes to have 0 pills
   for (int i = 0; i < 6; i++) {
@@ -260,3 +306,100 @@ uint32_t getBCo(String obj_name, uint32_t *buffer) {
   sendCommand(cmd.c_str());
   return recvRetNumber(buffer);
 }
+
+uint8_t readnumber(void) {
+  //helper function in creating a fingerprint 
+  //returns the location that the fingerprint is stored in (0 to 127)
+  uint8_t num = 0;
+
+  while (num == 0) {
+    while (! Serial.available());
+    num = Serial.parseInt();
+  }
+  return num;
+}
+
+uint8_t getFingerprintEnroll(uint8_t id) {
+
+  int p = -1;
+  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+
+  Serial.println("Remove finger");
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+  }
+  Serial.print("ID "); Serial.println(id);
+  p = -1;
+  Serial.println("Place same finger again");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    default:
+      Serial.println("error");
+      return p;
+  }
+
+  // OK converted!
+  Serial.print("Creating model for #");  Serial.println(id);
+
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Prints matched!");
+  } else {
+    Serial.println(" error");
+    return p;
+  }
+
+  Serial.print("ID "); Serial.println(id);
+  p = finger.storeModel(id);
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Stored!");
+  } else {
+    Serial.println("error");
+    return p;
+  }
+
+  return true;
+}
+ 

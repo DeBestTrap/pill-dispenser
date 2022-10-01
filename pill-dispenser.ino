@@ -4,39 +4,27 @@
 #include "Nextion.h"
 #include "profile.h"
 #include "alarm.h"
-#include "Adafruit_Fingerprint.h"
+#include <SoftwareSerial.h>
 
-//defintions 
-#if (defined(__AVR__) || defined(ESP8266)) && !defined(__AVR_ATmega2560__)
-// pin #2 in sensor in, pin #4 out from arduino
-SoftwareSerial mySerial(2, 4);
-#else 
-  #define mySerial Serial1
-#endif
+SoftwareSerial my_serial(7,8); //rx tx 
 
-char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
-uint8_t fingerid = 0;
-
-// Arrays to store chute information
-String chute_name_array[6];
-uint8_t pill_array[6];
-
-// Keeping Track of Time
 uint32_t prev_millis = 0;
 uint8_t current_hour = 0;
-uint8_t current_minute = 0;
-uint8_t current_day = 0; //0-6, 0: sunday, 6: saturday
+uint32_t current_minute = 0;
+uint8_t current_day = 0;
 
-// Define Pins
-// #define MOTORPIN 3
+char weekday_abbrv[7] = {'U', 'M', 'T', 'W', 'R', 'F', 'S'};
+
+uint8_t pill_array[6];
+String chute_name_array[6];
 
 // Declare your Nextion objects - Example (page id = 0, component id = 1, component name = "b0") 
 // ** IMPORTANT **
 //   The variable names are going to include the page number to decrease confusion. The names of
 //   the buttons/components in the UI editor do not have to include the page number in their name.
+NexButton weekday_b0_clock (1, 1, "b0");
 
 NexText name_t2_profile(3, 3, "t2");
-NexText notification_t1_profile(3, 6, "t1");
 NexButton idscan_b0_profile(3, 5, "b2");
 NexButton schedule_b0_profile(3, 1, "b0");
 
@@ -52,56 +40,61 @@ NexButton newTime_b3_alarm(6, 9, "b3");
 NexButton finished_b2_alarm(6, 8, "b2");
 String weekday_variable_names[7] = { "va0", "va8", "va1", "va5", "va4", "va6", "va7" };
 
-NexButton status_b1_idle(9, 13, "b1");
+NexText allAlarms_t0_overview(7, 3, "t0");
 
 // Register a button object to the touch event list.  
 NexTouch *nex_listen_list[] = {
+  &weekday_b0_clock,
   &idscan_b0_profile,
   &schedule_b0_profile,
   &toAddAlarm_b0_chuteprofile,
   &newTime_b3_alarm,
   &finished_b2_alarm,
-  &status_b1_idle,
   NULL
 };
+
+Profile tempProfile = Profile();
+
+void weekday_b0_clock_PushCb(void *ptr){
+  uint32_t weekday_buf[1];
+  getVal("clock.va0", weekday_buf);
+  current_day = weekday_buf[0];
+  
+}
 
 void idScan_b0_profile_PushCb(void *ptr) {
   // Once user presses the button, goes to a new page
   // interacts with the fingerprint sensor here
-  
-  fingerid ++;
-  String text;
-  text = "Press finger on sensor";
-
-  char text_buff[sizeof(text)];
-  
-  setText("profile.t1", text_buff ,sizeof(text_buff));
-  text.toCharArray(text_buff, sizeof(text_buff));
-
-
-
-
-  Serial.println("Ready to enroll a fingerprint!");
-  Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-  
-
-  Serial.print("Enrolling ID #");
-  Serial.println(fingerid);
-
-  while (!  getFingerprintEnroll(fingerid) );
+  my_serial.write(130);
+  uint8_t fin_id = 0;
+  while(fin_id == 0) {
+    while(my_serial.available()) {
+      fin_id = my_serial.read();
+    }
+    if (fin_id == 132){
+      sendCommand("page enrollfail");
+      delay(2500);
+      sendCommand("page scan");
+      my_serial.write(130);
+      fin_id = 0;
+    }
+  }
+  tempProfile.setFingerprint(fin_id);
    
-  
+  sendCommand("page profile");
 
-  fingerid = 1;
+  //send signal to other arudino 
+  
 }
- 
-Profile tempProfile = Profile();
+
+
 void schedule_b0_profile_PushCb(void *ptr) {
   // Creates a profile that stores the name and the finger print id
   // into the profile class
+  
   char text_buf[20];
   getText("profile.t2", text_buf, 20);
-  tempProfile = Profile(text_buf, fingerid);
+  tempProfile.setName(text_buf);
 }
 
 uint32_t chute_num;
@@ -117,6 +110,7 @@ void toAddAlarm_b0_chuteprofile_PushCb(void *ptr) {
   pill_array[chute_num-1] = int_buf[0];
   setVal("chuteprofile.n0", 0); // Reset the num of pills on display back to 0
 }
+
 
 void addAlarm() {
   // General add alarm function since newTime and finished buttons 
@@ -135,19 +129,24 @@ void addAlarm() {
   mins += int_buf[0];
   tempAlarm.changeAlarmTime(mins);
   tempAlarm.changeAlarmChute(chute_num);
+  setVal("chuteprofile.n0", tempAlarm.getAlarmTime());
 
   // Store the weekdays to the alarm class
   for (uint8_t ctr = 0; ctr < 7; ctr++) {
     // for all weekdays selected by user, store in alarm class
     String obj_name = "alarm.";
-    obj_name = weekday_abbrv[ctr];
+    obj_name += weekday_variable_names[ctr];
     getVal(obj_name, int_buf);
-    if (int_buf[0] == 0) {
+    if (int_buf[0] == 1) {
       // If the weekday is selected, store in alarm class as true
       tempAlarm.setAlarmDay(ctr, true);
+    } else {
+      // If the weekday is not selected, store in alarm class as false
+      tempAlarm.setAlarmDay(ctr, false);
     }
   }
   tempProfile.setNewAlarm(tempAlarm);
+  
 }
 
 void newTime_b3_alarm_PushCb(void *ptr) {
@@ -156,27 +155,10 @@ void newTime_b3_alarm_PushCb(void *ptr) {
 
 void finished_b2_alarm_PushCb(void *ptr) {
   addAlarm();
-
   // Edit allalarms text on the overview page with all alarms
-  char text_buf[100];
-  String text = create_upcoming_alarms_text();
-  text.toCharArray(text_buf, 100);
-  setText("overview.t0", text_buf, 100);
-}
-
-void status_b1_idle_PushCb(void *ptr) {
-  // If the user presses the status button, go to the status page
-  // and display the upcoming alarms
-  char text_buf[100];
-  String text = create_upcoming_alarms_text();
-  text.toCharArray(text_buf, 100);
-  setText("idle.t0", text_buf, 100);
-}
-
-String create_upcoming_alarms_text() {
   char text_buf[30];
   String text; 
-  for (uint8_t i = 0; i < 10; i++) {
+  for (uint8_t i = 0; i < 3; i++) {
     Alarm tempAlarm = tempProfile.getAlarm(i);
     if (tempAlarm.getChuteNo() == 0) {
       // If the alarm is not set, break the loop 
@@ -185,7 +167,7 @@ String create_upcoming_alarms_text() {
 
     // Parse seconds and add "<hr>:<min>" to the text
     uint32_t mins = tempAlarm.getAlarmTime();
-    uint32_t hours = floor(mins / 60);
+    uint8_t hours = floor(mins / 60);
     mins -= hours * 60;
     utoa(hours, text_buf, 10);
     text += text_buf;
@@ -201,40 +183,36 @@ String create_upcoming_alarms_text() {
       }
     }
     text += '\r';
+    hours = tempProfile.getFingerprint();
+    utoa(hours, text_buf, 10);
+    text += text_buf[0];
   }
-  return text;
+
+  text.toCharArray(text_buf, 30);
+  setText("overview.t0", text_buf, 30);
 }
 
-Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 void setup(void) {    
   // Set the baudrate which is for debug and communicate with Nextion screen
   Serial.begin(9600);
-    
+  while(!Serial);
+  my_serial.begin(9600);
+  while(!my_serial);  
   // If you have not, you need to change NexConfig.h file in your libary.
   // Instructions are in the file.
   nexInit();
 
   // Register the pop event callback function of the components
+  weekday_b0_clock.attachPush(weekday_b0_clock_PushCb, &weekday_b0_clock);
   idscan_b0_profile.attachPush(idScan_b0_profile_PushCb, &idscan_b0_profile);
   schedule_b0_profile.attachPush(schedule_b0_profile_PushCb, &schedule_b0_profile);
   toAddAlarm_b0_chuteprofile.attachPush(toAddAlarm_b0_chuteprofile_PushCb, &toAddAlarm_b0_chuteprofile);
   newTime_b3_alarm.attachPush(newTime_b3_alarm_PushCb, &newTime_b3_alarm);
   finished_b2_alarm.attachPush(finished_b2_alarm_PushCb, &finished_b2_alarm);
-  status_b1_idle.attachPush(status_b1_idle_PushCb, &status_b1_idle);
 
   // Set output pins
   // pinMode(motorPin, OUTPUT);
-
-
-  //set fingerprint sensor datarate
-  finger.begin(57600);
-  if (finger.verifyPassword()) {
-    Serial.println("Found fingerprint sensor!");
-  } else {
-    Serial.println("Did not find fingerprint sensor :(");
-    while (1) {delay(1);};
-  }
 
   // Init all the chutes to have 0 pills
   for (int i = 0; i < 6; i++) {
@@ -249,33 +227,91 @@ void loop(void) {
    */
 
   nexLoop(nex_listen_list);
+
+  bool flag = false;
+  uint8_t alarm_no = 0;
+
   uint32_t hour[1];
   uint32_t minute[1];
-  if (millis()-prev_millis >= 1000){
+  if (millis()-prev_millis >= 60000){
     sendCommand("get rtc3");
     recvRetNumber(hour);
     sendCommand("get rtc4");
     recvRetNumber(minute);
-  } 
-  
-  if (hour[0] == 0 && current_hour == 23){
-    if(current_day <6){
-      current_day++;
-    }else{
-      current_day=0;
+    prev_millis = millis();
+
+    //update day of week
+    if (hour[0] == 0 && current_hour == 23){
+      if(current_day <6){
+        current_day++;
+      }else{
+        current_day=0;
+      }
     }
+    current_hour = hour[0];
+    current_minute = minute[0];
+
+    uint32_t tmp_minute = current_minute;
+    tmp_minute+=(current_hour*60);
+    
+    for (uint8_t i = 0; i < 3; i++){
+      if (tempProfile.getAlarm(i).getAlarmTime() == tmp_minute && tempProfile.getAlarm(i).getAlarmDays(current_day) == true){
+        flag = true;
+        alarm_no = i;
+        break;
+      }
+    }
+  } 
+
+  if (flag == true){
+    flag = false;
+    setText("alarmrings.t0", tempProfile.getName(), 20);
+    my_serial.write(tempProfile.getFingerprint());
+    sendCommand("page alarmrings");
+    uint32_t prev_alarm = millis();
+    while(true){
+      uint8_t fin_id = 0;
+      if (millis() > prev_alarm + 1000) {
+        tone(3, 587);
+      }
+      if (millis() > prev_alarm + 2000) {
+        noTone(3);
+        prev_alarm = millis();
+      }
+      
+      if (my_serial.available()) {
+         fin_id = my_serial.read();
+      }
+      if (fin_id == 129){
+        sendCommand("page fingerfail");
+        delay(2500);
+        sendCommand("page alarmrings");
+        my_serial.write(tempProfile.getFingerprint());
+      }else if(fin_id == 131){
+        sendCommand("page idle");
+        my_serial.write(tempProfile.getAlarm(alarm_no).getChuteNo()+200);
+        noTone(3);
+        uint8_t tmp = 0;
+        while(true){
+          while(my_serial.available()){
+            tmp = my_serial.read();
+          }
+          if(tmp == 133){
+            break;
+          }
+        }
+        break;
+      }
+    }
+    sendCommand("page idle");
   }
 
-  if(minute[0] == 1){
-    digitalWrite(3, HIGH);
-  }else{
-    digitalWrite(3, LOW);
-  }
-  current_hour = hour[0];
-  current_minute = minute[0];
+  
+  
+  // TESTING
+  // currTime = motorControl(motorPin, currTime);
+  // t0p1.setText(ltoa(millis() - currTime, buf, 10));
 }
-
-
 
 // My own functions for getText, setText, getVal, setVal, getBCo
 bool getVal(String obj_name, uint32_t *buffer) {
@@ -330,100 +366,3 @@ uint32_t getBCo(String obj_name, uint32_t *buffer) {
   sendCommand(cmd.c_str());
   return recvRetNumber(buffer);
 }
-
-uint8_t readnumber(void) {
-  //helper function in creating a fingerprint 
-  //returns the location that the fingerprint is stored in (0 to 127)
-  uint8_t num = 0;
-
-  while (num == 0) {
-    while (! Serial.available());
-    num = Serial.parseInt();
-  }
-  return num;
-}
-
-uint8_t getFingerprintEnroll(uint8_t id) {
-
-  int p = -1;
-  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
-  while (p != FINGERPRINT_OK) {
-    p = finger.getImage();
-    switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image taken");
-      break;
-    default:
-      Serial.println("Unknown error");
-      break;
-    }
-  }
-
-  // OK success!
-
-  p = finger.image2Tz(1);
-  switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image converted");
-      break;
-    default:
-      Serial.println("Unknown error");
-      return p;
-  }
-
-  Serial.println("Remove finger");
-  delay(2000);
-  p = 0;
-  while (p != FINGERPRINT_NOFINGER) {
-    p = finger.getImage();
-  }
-  Serial.print("ID "); Serial.println(id);
-  p = -1;
-  Serial.println("Place same finger again");
-  while (p != FINGERPRINT_OK) {
-    p = finger.getImage();
-    switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image taken");
-      break;
-    default:
-      Serial.println("Unknown error");
-      break;
-    }
-  }
-
-  // OK success!
-
-  p = finger.image2Tz(2);
-  switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image converted");
-      break;
-    default:
-      Serial.println("error");
-      return p;
-  }
-
-  // OK converted!
-  Serial.print("Creating model for #");  Serial.println(id);
-
-  p = finger.createModel();
-  if (p == FINGERPRINT_OK) {
-    Serial.println("Prints matched!");
-  } else {
-    Serial.println(" error");
-    return p;
-  }
-
-  Serial.print("ID "); Serial.println(id);
-  p = finger.storeModel(id);
-  if (p == FINGERPRINT_OK) {
-    Serial.println("Stored!");
-  } else {
-    Serial.println("error");
-    return p;
-  }
-
-  return true;
-}
- 

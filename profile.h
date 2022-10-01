@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include "alarm.h"
-#include <Adafruit_Fingerprint.h>
 
 //make a class that can be used to store a profile
 class Profile{
@@ -11,42 +10,38 @@ class Profile{
         
         //constructor
         Profile() {
-          for (uint8_t i = 0; i < 10; i++){
+          for (uint8_t i = 0; i < 3; i++){
             alarms[i] = Alarm();
           }
-          this->fingerprint = 0;
+          this->id = 0;
         }
 
         Profile(char name[], int fingerprint){
           strcpy(this->name, name);
-          this->fingerprint = fingerprint;
-          for (uint8_t i = 0; i < 10; i++){
+          this->id = fingerprint;
+          for (uint8_t i = 0; i < 3; i++){
             alarms[i] = Alarm();
           }
         }
 
         //getters
         char* getName() {return name;}
-        int getFingerprint() {return fingerprint;}
+        uint8_t getFingerprint() {return id;}
         Alarm getAlarm(uint8_t i) {return alarms[i];}
+        
 
         //setters
         char setName(char name[]);
-        int setFingerprint(uint8_t fingerprint);
+        int setFingerprint();
         void setNewAlarm (Alarm tempAlarm);
-        void FingerPrintScan();        
+        int setFingerprint(uint8_t fingerprint);
+        
 
     private:
-        char name[10];
-        uint8_t fingerprint; 
-        Alarm alarms[10];
-
-      //Fingerprint sensor stuff
-        void setup(void); //might not need setup since dispenser.ino already has it
-        uint8_t readnumber(void);
-        uint8_t  enroll(); 
-
+        char name[20];
+        Alarm alarms[3];
         uint8_t id;
+  
 
 
 };

@@ -6,7 +6,7 @@ void Alarm::changeAlarmDay(uint8_t day){
     else day_of_alarm[day] = 0;
 }
 void Alarm::changeAlarmTime(uint32_t tmptime){
-    time = tmptime;
+    mins = tmptime;
 }
 void Alarm::changeAlarmChute(uint8_t chute){
     chute_no = chute;
@@ -17,7 +17,7 @@ bool Alarm::getAlarmDays(uint8_t day){
 }
 
 uint32_t Alarm::getAlarmTime(){
-    return time;
+    return mins;
 }
 
 uint8_t Alarm::getChuteNo(){

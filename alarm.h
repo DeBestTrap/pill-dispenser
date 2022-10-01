@@ -7,7 +7,7 @@ class Alarm{
 public:
 
     Alarm(){
-      time = 0;
+      mins = 2000;
       for (uint8_t i = 0; i < 7; i++){
         day_of_alarm[i] = false;
       }
@@ -15,7 +15,7 @@ public:
     }
     
     Alarm(uint32_t tmptime, bool tempdayofweek[], uint8_t chuteno) {
-    this->time = tmptime;
+    this->mins = tmptime;
     for (int i = 0; i < 7; i++){
       this->day_of_alarm[i] = tempdayofweek[i];
     }
@@ -23,8 +23,8 @@ public:
     }
 
     //setters
-    void setAlarmDay(uint8_t day, bool status){
-      day_of_alarm[day]=status;
+    void setAlarmDay(uint8_t day, bool stat){
+      day_of_alarm[day]=stat;
     }
 
     //modifiers
@@ -38,8 +38,8 @@ public:
     uint8_t getChuteNo();
 
 private:
-    uint32_t time; //expressed in minutes
-    bool day_of_alarm[7];//index 0 = monday, index 6 = sunday. val of true means set, val of false means not set
+    uint32_t mins; //expressed in minutes
+    bool day_of_alarm[7];//index 0 = sunday, index 6 = saturday. val of true means set, val of false means not set
     uint8_t chute_no; //numbers 1-6
 };
 #endif //PILL_DISPENSER_ALARM_H
